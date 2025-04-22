@@ -41,6 +41,29 @@ ChatMD Editor est un éditeur visuel pour créer et gérer des chatbots basés s
 
 4. Ouvrez votre navigateur à l'adresse : [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
+## 🚀 Déploiement en Production
+
+Pour déployer l'application en environnement de production, utilisez les scripts de lancement fournis :
+
+### Sous Windows
+
+```
+launch_prod.bat
+```
+
+### Sous Linux/macOS
+
+```bash
+chmod +x launch_prod.sh
+./launch_prod.sh
+```
+
+Le serveur sera accessible à l'adresse : [http://0.0.0.0:8000](http://0.0.0.0:8000)
+
+![Capture d'écran de l'interface](medias/capture.png)
+
+Pour plus d'informations sur le déploiement en production, consultez le fichier [PRODUCTION.md](PRODUCTION.md).
+
 ## 🔧 Utilisation
 
 ### Organisation des blocs
