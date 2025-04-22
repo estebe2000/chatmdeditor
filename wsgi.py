@@ -1,10 +1,16 @@
-from flask import Flask, render_template, request, jsonify, send_file, after_this_request, abort
+from flask import Flask, render_template, request, jsonify, send_file, after_this_request, abort, session, redirect
 import yaml
 import os
 import tempfile
 import logging
 import json
 from werkzeug.utils import secure_filename
+from document_processor import DocumentProcessor
+from llm_service import LLMService
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement
+load_dotenv()
 
 # Configuration du logging
 logging.basicConfig(
@@ -18,6 +24,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# Clé secrète pour les sessions
+app.secret_key = os.urandom(24)
+
+# Initialisation des services
+document_processor = DocumentProcessor()
+llm_service = LLMService(use_online=False)  # Par défaut, utiliser le LLM local
 
 # Configuration
 CONFIG_FILE = 'config_prod.json'  # Utiliser la configuration de production
@@ -238,6 +251,128 @@ def page_not_found(e):
 def server_error(e):
     logger.error(f"Erreur serveur: {str(e)}")
     return jsonify({'error': 'Erreur serveur interne'}), 500
+
+@app.route('/save-to-editor', methods=['POST'])
+def save_to_editor():
+    """Sauvegarde le markdown dans la session et redirige vers l'éditeur principal"""
+    markdown = request.form.get('markdown', '')
+    if not markdown:
+        return jsonify({'error': 'Le contenu markdown est vide'}), 400
+    
+    try:
+        # Sauvegarder le markdown dans la session
+        session['markdown'] = markdown
+        
+        # Rediriger vers la page principale
+        return jsonify({'status': 'success', 'redirect': '/'})
+    except Exception as e:
+        logger.error(f"Erreur lors de la sauvegarde dans la session: {str(e)}")
+        return jsonify({'error': f'Erreur: {str(e)}'}), 500
+
+@app.route('/ai-generation', methods=['GET'])
+def ai_generation_page():
+    """Affiche la page de génération par IA"""
+    return render_template('ai_generation.html')
+
+@app.route('/api/generate-from-document', methods=['POST'])
+def generate_from_document():
+    """Génère un chatbot à partir d'un document uploadé"""
+    if 'document' not in request.files:
+        return jsonify({'error': 'Aucun fichier fourni'}), 400
+    
+    file = request.files['document']
+    if file.filename == '':
+        return jsonify({'error': 'Aucun fichier sélectionné'}), 400
+    
+    # Récupération des paramètres
+    params = {
+        'doc_type': request.form.get('doc_type', 'custom'),
+        'tone': request.form.get('tone', 'conversational'),
+        'complexity': request.form.get('complexity', 'intermediate'),
+        'max_depth': int(request.form.get('max_depth', 3)),
+        'choices_per_level': int(request.form.get('choices_per_level', 3))
+    }
+    
+    try:
+        # Sauvegarder le fichier temporairement
+        temp_dir = tempfile.mkdtemp()
+        file_path = os.path.join(temp_dir, secure_filename(file.filename))
+        file.save(file_path)
+        
+        # Traiter le document
+        content = document_processor.process(file_path, params)
+        if not content:
+            return jsonify({'error': 'Impossible de traiter le document'}), 400
+        
+        # Générer le chatbot
+        markdown = llm_service.generate_chatmd(content, params)
+        if not markdown:
+            return jsonify({'error': 'Erreur lors de la génération du chatbot'}), 500
+        
+        # Nettoyer
+        os.remove(file_path)
+        os.rmdir(temp_dir)
+        
+        return jsonify({'markdown': markdown, 'status': 'success'})
+    except Exception as e:
+        logger.error(f"Erreur lors de la génération du chatbot: {str(e)}")
+        return jsonify({'error': f'Erreur: {str(e)}'}), 500
+
+@app.route('/api/suggest-improvements', methods=['POST'])
+def suggest_improvements():
+    """Suggère des améliorations pour un chatbot existant"""
+    data = request.json
+    if not data or 'markdown' not in data:
+        return jsonify({'error': 'Aucun contenu fourni'}), 400
+    
+    markdown = data.get('markdown')
+    section = data.get('section')
+    
+    try:
+        suggestions = llm_service.suggest_improvements(markdown, section)
+        if not suggestions:
+            return jsonify({'error': 'Erreur lors de la génération des suggestions'}), 500
+        
+        return jsonify({'suggestions': suggestions, 'status': 'success'})
+    except Exception as e:
+        logger.error(f"Erreur lors de la génération des suggestions: {str(e)}")
+        return jsonify({'error': f'Erreur: {str(e)}'}), 500
+
+@app.route('/api/toggle-llm-mode', methods=['POST'])
+def toggle_llm_mode():
+    """Change le mode LLM (local ou en ligne)"""
+    global llm_service
+    
+    data = request.json
+    if not data or 'use_online' not in data:
+        return jsonify({'error': 'Paramètre use_online manquant'}), 400
+    
+    use_online = data.get('use_online', False)
+    
+    try:
+        # Créer une nouvelle instance du service LLM avec le mode spécifié
+        llm_service = LLMService(use_online=use_online)
+        
+        mode = "en ligne (Mistral API)" if use_online else "local (Jan.ai)"
+        logger.info(f"Mode LLM changé: {mode}")
+        
+        return jsonify({
+            'status': 'success',
+            'mode': mode,
+            'use_online': use_online
+        })
+    except Exception as e:
+        logger.error(f"Erreur lors du changement de mode LLM: {str(e)}")
+        return jsonify({'error': f'Erreur: {str(e)}'}), 500
+
+@app.route('/api/llm-status', methods=['GET'])
+def llm_status():
+    """Retourne le statut du LLM"""
+    return jsonify({
+        'use_online': llm_service.use_online,
+        'model': llm_service.model,
+        'api_url': llm_service.api_url if not llm_service.use_online else llm_service.online_api_url
+    })
 
 # Créer les répertoires nécessaires
 os.makedirs('static/js', exist_ok=True)
