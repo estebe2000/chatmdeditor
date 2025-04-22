@@ -623,31 +623,52 @@ Contenu de la réponse 2`;
             const gestionGrosMots = document.getElementById('yaml-grosmots').value;
             let markdown = editor.value;
             
+            // Si aucun en-tête YAML n'est trouvé, en créer un
             if (!markdown.includes('---')) {
-                showNotification('Erreur: En-tête YAML non trouvé dans le document', 'error');
-                return;
-            }
-            
-            const parts = markdown.split('---');
-            if (parts.length < 3) {
-                showNotification('Erreur: Format d\'en-tête YAML invalide', 'error');
-                return;
-            }
-            
-            let yamlPart = parts[1];
-            
-            // Mettre à jour ou ajouter gestionGrosMots
-            if (yamlPart.includes('gestionGrosMots:')) {
-                yamlPart = yamlPart.replace(
-                    /gestionGrosMots:\s*.+/,
-                    `gestionGrosMots: ${gestionGrosMots}`
-                );
+                // Créer un nouvel en-tête YAML
+                const yamlHeader = `---
+gestionGrosMots: ${gestionGrosMots}
+titresRéponses: ["## "]
+---
+
+`;
+                // Ajouter l'en-tête au début du document
+                markdown = yamlHeader + markdown;
+                editor.value = markdown;
+                showNotification('En-tête YAML créé', 'success');
             } else {
-                yamlPart = `gestionGrosMots: ${gestionGrosMots}\n${yamlPart}`;
+                const parts = markdown.split('---');
+                if (parts.length < 3) {
+                    // Format invalide, créer un nouvel en-tête
+                    const yamlHeader = `---
+gestionGrosMots: ${gestionGrosMots}
+titresRéponses: ["## "]
+---
+
+`;
+                    // Remplacer l'en-tête invalide
+                    markdown = yamlHeader + parts.slice(1).join('---');
+                    editor.value = markdown;
+                    showNotification('En-tête YAML corrigé', 'success');
+                } else {
+                    let yamlPart = parts[1];
+                    
+                    // Mettre à jour ou ajouter gestionGrosMots
+                    if (yamlPart.includes('gestionGrosMots:')) {
+                        yamlPart = yamlPart.replace(
+                            /gestionGrosMots:\s*.+/,
+                            `gestionGrosMots: ${gestionGrosMots}`
+                        );
+                    } else {
+                        yamlPart = `gestionGrosMots: ${gestionGrosMots}\n${yamlPart}`;
+                    }
+                    
+                    markdown = `${parts[0]}---${yamlPart}---${parts.slice(2).join('---')}`;
+                    editor.value = markdown;
+                    showNotification('En-tête YAML mis à jour', 'success');
+                }
             }
             
-            markdown = `${parts[0]}---${yamlPart}---${parts[2]}`;
-            editor.value = markdown;
             updatePreview();
             saveToServer();
             
@@ -656,8 +677,6 @@ Contenu de la réponse 2`;
                 window.blockEditor.parseMarkdown(editor.value);
                 window.blockEditor.renderBlockPanel();
             }
-            
-            showNotification('En-tête YAML mis à jour', 'success');
         } catch (error) {
             console.error('Erreur lors de la mise à jour du YAML:', error);
             showNotification(`Erreur: ${error.message}`, 'error');
@@ -688,19 +707,72 @@ Contenu de la réponse 2`;
             const llmMaxTokens = document.getElementById('yaml-llm-maxTokens').value.trim();
             
             let markdown = editor.value;
+            let yamlPart = '';
+            let parts = [];
             
+            // Si aucun en-tête YAML n'est trouvé, en créer un
             if (!markdown.includes('---')) {
-                showNotification('Erreur: En-tête YAML non trouvé dans le document', 'error');
+                // Créer un nouvel en-tête YAML
+                const yamlHeader = `---
+gestionGrosMots: ${gestionGrosMots}
+titresRéponses: ["## "]
+searchInContent: ${searchInContent}
+detectBadWords: ${detectBadWords}
+${style ? `style: "${style}"\n` : ''}${avatar ? `avatar: "${avatar}"\n` : ''}avatarCercle: ${avatarCercle}
+${favicon ? `favicon: "${favicon}"\n` : ''}${footer ? (footer.toLowerCase() === 'false' ? 'footer: false\n' : `footer: "${footer}"\n`) : ''}${theme ? `theme: "${theme}"\n` : ''}typewriter: ${typewriter}
+clavier: ${clavier}
+---
+
+`;
+                // Ajouter l'en-tête au début du document
+                markdown = yamlHeader + markdown;
+                editor.value = markdown;
+                showNotification('En-tête YAML créé avec tous les paramètres', 'success');
+                
+                updatePreview();
+                saveToServer();
+                
+                // Mettre à jour l'éditeur de blocs
+                if (window.blockEditor) {
+                    window.blockEditor.parseMarkdown(editor.value);
+                    window.blockEditor.renderBlockPanel();
+                }
+                
                 return;
             }
             
-            const parts = markdown.split('---');
+            parts = markdown.split('---');
             if (parts.length < 3) {
-                showNotification('Erreur: Format d\'en-tête YAML invalide', 'error');
+                // Format invalide, créer un nouvel en-tête
+                const yamlHeader = `---
+gestionGrosMots: ${gestionGrosMots}
+titresRéponses: ["## "]
+searchInContent: ${searchInContent}
+detectBadWords: ${detectBadWords}
+${style ? `style: "${style}"\n` : ''}${avatar ? `avatar: "${avatar}"\n` : ''}avatarCercle: ${avatarCercle}
+${favicon ? `favicon: "${favicon}"\n` : ''}${footer ? (footer.toLowerCase() === 'false' ? 'footer: false\n' : `footer: "${footer}"\n`) : ''}${theme ? `theme: "${theme}"\n` : ''}typewriter: ${typewriter}
+clavier: ${clavier}
+---
+
+`;
+                // Remplacer l'en-tête invalide
+                markdown = yamlHeader + parts.slice(1).join('---');
+                editor.value = markdown;
+                showNotification('En-tête YAML corrigé avec tous les paramètres', 'success');
+                
+                updatePreview();
+                saveToServer();
+                
+                // Mettre à jour l'éditeur de blocs
+                if (window.blockEditor) {
+                    window.blockEditor.parseMarkdown(editor.value);
+                    window.blockEditor.renderBlockPanel();
+                }
+                
                 return;
             }
             
-            let yamlPart = parts[1];
+            yamlPart = parts[1];
             
             // Fonction pour mettre à jour ou ajouter un paramètre YAML
             function updateYamlParam(param, value) {

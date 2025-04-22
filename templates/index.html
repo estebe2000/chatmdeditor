@@ -64,7 +64,7 @@
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-blue-600 mb-6">Éditeur ChatMD</h1>
         
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
             <!-- Colonne gauche - Organisation des blocs -->
             <div class="bg-white rounded-lg shadow p-4">
                 <h2 class="text-xl font-semibold mb-4">Organisation des blocs</h2>
@@ -75,7 +75,7 @@
             </div>
 
             <!-- Colonne droite - Paramètres généraux, Prévisualisation et Outils -->
-            <div class="space-y-6">
+            <div class="space-y-6 lg:sticky lg:top-4 lg:self-start lg:max-h-screen lg:overflow-y-auto">
                 <!-- Paramètres généraux -->
                 <div class="bg-white rounded-lg shadow p-4">
                     <div class="flex justify-between items-center mb-4">
@@ -160,7 +160,17 @@
                         </div>
                         
                         <div class="border-t pt-4 mt-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Configuration LLM</label>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-sm font-medium text-gray-700">Configuration LLM</label>
+                                <div class="flex items-center">
+                                    <span class="mr-2 text-xs">Local</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="llm-mode-switch" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                    <span class="ml-2 text-xs">En ligne</span>
+                                </div>
+                            </div>
                             
                             <div class="mb-2">
                                 <label class="block text-xs text-gray-600">URL de l'API</label>
@@ -212,6 +222,10 @@
                 <!-- Outils de modification -->
                 <div id="assistance-panel" class="bg-white rounded-lg shadow p-4">
                     <h2 class="text-xl font-semibold mb-4">Assistance</h2>
+                    
+                    <a href="/ai-generation" class="block mb-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">
+                        <i class="fas fa-robot mr-2"></i>Génération par IA
+                    </a>
                     
                     <details class="mb-4">
                         <summary class="font-medium cursor-pointer">Édition de bloc</summary>
@@ -341,5 +355,147 @@
     <script src="/static/js/main.js"></script>
     <script src="/static/js/block-editor.js"></script>
     <script src="/static/js/block-editor-part2.js"></script>
+    
+    <script>
+        // Vérification du statut du LLM et remplissage automatique des champs de configuration
+        document.addEventListener('DOMContentLoaded', function() {
+            // Récupérer les champs de configuration LLM
+            const llmUrlField = document.getElementById('yaml-llm-url');
+            const llmModelField = document.getElementById('yaml-llm-model');
+            const llmMaxTopElementsField = document.getElementById('yaml-llm-maxTopElements');
+            const llmMaxTokensField = document.getElementById('yaml-llm-maxTokens');
+            
+            const llmModeSwitch = document.getElementById('llm-mode-switch');
+            
+            // Fonction pour vérifier le statut du LLM
+            function checkLLMStatus() {
+                fetch('/api/llm-status')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Mettre à jour le switch
+                        llmModeSwitch.checked = data.use_online;
+                        
+                        // Mettre à jour les champs de configuration
+                        if (data.use_online) {
+                            // Mode en ligne (Mistral API)
+                            llmUrlField.value = data.api_url;
+                            llmModelField.value = "codestral-latest";
+                            llmMaxTopElementsField.value = "5";
+                            llmMaxTokensField.value = "200";
+                            
+                            // Ajouter une indication visuelle
+                            updateStatusIndicator(true, "en ligne (Mistral API - Codestral)");
+                        } else {
+                            // Mode local (Jan.ai)
+                            checkLocalLLM();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors de la vérification du statut LLM:', error);
+                        checkLocalLLM();
+                    });
+            }
+            
+            // Fonction pour vérifier si le LLM local est disponible
+            function checkLocalLLM() {
+                fetch('/api/suggest-improvements', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        markdown: "# Test\nCeci est un test.",
+                        section: ""
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // LLM local détecté, remplir les champs de configuration
+                        llmUrlField.value = "http://localhost:1337/v1/chat/completions";
+                        llmModelField.value = "mistral:7b";
+                        llmMaxTopElementsField.value = "5";
+                        llmMaxTokensField.value = "200";
+                        
+                        // Ajouter une indication visuelle que le LLM est connecté
+                        updateStatusIndicator(true, "local (Jan.ai - mistral:7b)");
+                    } else {
+                        // LLM local non détecté
+                        updateStatusIndicator(false, "non connecté");
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la vérification du LLM local:', error);
+                    updateStatusIndicator(false, "non connecté");
+                });
+            }
+            
+            // Fonction pour mettre à jour l'indicateur de statut
+            function updateStatusIndicator(connected, mode) {
+                const configSection = document.querySelector('.border-t.pt-4.mt-4');
+                if (!configSection) return;
+                
+                // Vérifier si l'indicateur existe déjà
+                let statusIndicator = document.getElementById('llm-status-indicator');
+                if (!statusIndicator) {
+                    // Créer l'indicateur de statut
+                    statusIndicator = document.createElement('div');
+                    statusIndicator.id = 'llm-status-indicator';
+                    
+                    // Insérer l'indicateur au début de la section
+                    configSection.insertBefore(statusIndicator, configSection.firstChild);
+                }
+                
+                // Mettre à jour l'indicateur
+                if (connected) {
+                    statusIndicator.className = 'mb-2 p-2 bg-green-100 text-green-800 rounded';
+                    statusIndicator.innerHTML = `<strong>LLM connecté:</strong> ${mode}`;
+                } else {
+                    statusIndicator.className = 'mb-2 p-2 bg-yellow-100 text-yellow-800 rounded';
+                    statusIndicator.innerHTML = '<strong>LLM non connecté</strong> - Configurez Jan.ai avec mistral:7b ou utilisez le mode en ligne';
+                }
+            }
+            
+            // Gérer le changement de mode LLM
+            llmModeSwitch.addEventListener('change', function() {
+                const useOnline = this.checked;
+                
+                // Afficher un message de chargement
+                updateStatusIndicator(false, "changement de mode...");
+                
+                // Envoyer la requête pour changer le mode
+                fetch('/api/toggle-llm-mode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        use_online: useOnline
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur lors du changement de mode LLM');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Vérifier le statut du LLM
+                    checkLLMStatus();
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors du changement de mode LLM');
+                    this.checked = !useOnline;  // Remettre le switch dans son état précédent
+                    checkLLMStatus();
+                });
+            });
+            
+            // Vérifier le statut du LLM au chargement de la page
+            checkLLMStatus();
+            
+            // Vérifier le statut du LLM toutes les 30 secondes
+            setInterval(checkLLMStatus, 30000);
+        });
+    </script>
 </body>
 </html>

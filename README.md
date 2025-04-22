@@ -13,6 +13,8 @@ ChatMD Editor est un éditeur visuel pour créer et gérer des chatbots basés s
 - **Gestion des liens** : Créez facilement des liens entre les différents blocs de conversation
 - **Personnalisation avancée** : Modifiez l'apparence et le comportement de votre chatbot
 - **Exportation Markdown** : Exportez votre chatbot au format Markdown standard
+- **Génération par IA** : Créez automatiquement des chatbots à partir de documents existants
+- **Support LLM local et en ligne** : Utilisez Jan.ai en local ou l'API Mistral en ligne
 - **Accessibilité** : Interface conçue pour être accessible à tous
 
 ## 📋 Prérequis
@@ -100,6 +102,42 @@ Personnalisez l'apparence et le comportement de votre chatbot avec les paramètr
 - **Admonitions** : Ajoutez des notes, avertissements et autres blocs d'information
 - **Drag & Drop** : Réorganisez vos blocs par glisser-déposer
 - **Édition Markdown** : Accédez directement au code Markdown sous-jacent
+- **Génération par IA** : Créez automatiquement des chatbots à partir de documents existants
+
+### Configuration des LLM (Modèles de Langage)
+
+L'application prend en charge deux modes de fonctionnement pour la génération par IA :
+
+#### Mode Local (Jan.ai)
+
+1. Téléchargez et installez [Jan.ai](https://jan.ai/) (disponible pour Windows, Mac et Linux)
+2. Lancez Jan.ai et installez le modèle **mistral:7b** depuis la bibliothèque de modèles
+3. Activez l'API locale dans les paramètres de Jan.ai (Settings → API → Enable API Server)
+4. Assurez-vous que l'API est accessible à l'adresse `http://localhost:1337/v1/chat/completions`
+5. Sélectionnez le modèle **mistral:7b** comme modèle actif dans Jan.ai
+
+#### Mode En Ligne (API Mistral)
+
+1. Créez un fichier `.env` à la racine du projet avec les informations suivantes :
+   ```
+   # Configuration de l'API Mistral
+   MISTRAL_API_KEY=votre_clé_api_mistral
+   MISTRAL_API_URL=https://api.mistral.ai/v1/chat/completions
+   MISTRAL_MODEL=codestral-latest
+   
+   # Configuration du LLM local
+   LOCAL_API_URL=http://localhost:1337/v1/chat/completions
+   LOCAL_MODEL=mistral:7b
+   ```
+2. Remplacez `votre_clé_api_mistral` par votre clé API Mistral
+
+#### Basculer entre les modes
+
+Dans l'interface, vous pouvez facilement basculer entre le mode local et le mode en ligne en utilisant le switch présent dans :
+- La page principale (Éditeur ChatMD) sous "Configuration LLM"
+- La page de génération par IA (accessible via le bouton "Génération par IA")
+
+Le système détecte automatiquement la disponibilité du LLM local et bascule vers le mode en ligne si nécessaire.
 
 ## 📝 Format Markdown
 
@@ -161,3 +199,6 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 - [Tailwind CSS](https://tailwindcss.com/) pour le style
 - [Font Awesome](https://fontawesome.com/) pour les icônes
 - [JS-YAML](https://github.com/nodeca/js-yaml) pour le parsing YAML
+- [Jan.ai](https://jan.ai/) pour le LLM local
+- [Mistral AI](https://mistral.ai/) pour l'API de génération de texte
+- [python-dotenv](https://github.com/theskumar/python-dotenv) pour la gestion des variables d'environnement

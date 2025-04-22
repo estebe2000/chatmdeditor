@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatMD Editor - Génération par IA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <style>
+        .ai-generation-panel {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .alert-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .hidden {
+            display: none;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #007bff;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .preview-container {
+            margin-top: 30px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 4px;
+        }
+        .tab-container {
+            margin-top: 20px;
+        }
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab-button {
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+        }
+        .tab-button.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+        }
+        .tab-pane {
+            display: none;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="ai-generation-panel">
+        <h1>Génération de Chatbot par IA</h1>
+        
+        <div class="alert alert-info">
+            <p>Téléchargez un document (description d'entreprise, biographie, cours, etc.) et l'IA générera automatiquement un chatbot interactif au format ChatMD.</p>
+        </div>
+        
+        <div id="llm-status" class="alert alert-warning mb-4">
+            <div class="flex justify-between items-center">
+                <h4 class="font-bold">Statut du LLM: <span id="llm-status-text">Vérification...</span></h4>
+                <div class="flex items-center">
+                    <span class="mr-2 text-sm">Local</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="llm-mode-switch" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <span class="ml-2 text-sm">En ligne</span>
+                </div>
+            </div>
+            <div id="llm-instructions-local" class="mt-2">
+                <p class="mb-2">Pour utiliser la génération par IA en mode local, vous devez installer un LLM local:</p>
+                <ol class="list-decimal pl-5 mb-3 space-y-1">
+                    <li>Téléchargez et installez <a href="https://jan.ai/" target="_blank" class="text-blue-600 hover:underline">Jan.ai</a> (disponible pour Windows, Mac et Linux)</li>
+                    <li>Lancez Jan.ai et installez le modèle <strong>mistral:7b</strong> depuis la bibliothèque de modèles</li>
+                    <li>Activez l'API locale dans les paramètres de Jan.ai (Settings → API → Enable API Server)</li>
+                    <li>Assurez-vous que l'API est accessible à l'adresse <code>http://localhost:1337/v1/chat/completions</code></li>
+                    <li>Sélectionnez le modèle <strong>mistral:7b</strong> comme modèle actif dans Jan.ai</li>
+                </ol>
+                <p class="text-sm italic">Note: La génération de chatbot nécessite un modèle de taille suffisante pour comprendre et générer du contenu structuré. Le modèle mistral:7b est recommandé pour ses bonnes performances.</p>
+            </div>
+            <div id="llm-instructions-online" class="mt-2 hidden">
+                <p class="mb-2">Vous utilisez le mode en ligne avec l'API Mistral (modèle Codestral).</p>
+                <p class="text-sm italic">Note: Ce mode utilise l'API Mistral avec le modèle Codestral, qui est optimisé pour la génération de code et de contenu structuré.</p>
+            </div>
+        </div>
+        
+        <div id="error-container" class="alert alert-danger hidden"></div>
+        <div id="success-container" class="alert alert-success hidden"></div>
+        
+        <form id="ai-generation-form" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="doc-type">Type de document</label>
+                <select id="doc-type" name="doc_type" class="form-control">
+                    <option value="company">Description d'entreprise</option>
+                    <option value="biography">Biographie</option>
+                    <option value="course">Cours</option>
+                    <option value="product">Description de produit</option>
+                    <option value="custom">Personnalisé</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="document">Document</label>
+                <input type="file" id="document" name="document" class="form-control" accept=".txt,.pdf,.docx,.md">
+                <small>Formats supportés: TXT, PDF, DOCX, MD</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="tone">Ton</label>
+                <select id="tone" name="tone" class="form-control">
+                    <option value="formal">Formel</option>
+                    <option value="conversational" selected>Conversationnel</option>
+                    <option value="educational">Éducatif</option>
+                    <option value="friendly">Amical</option>
+                    <option value="professional">Professionnel</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="complexity">Complexité</label>
+                <select id="complexity" name="complexity" class="form-control">
+                    <option value="beginner">Débutant</option>
+                    <option value="intermediate" selected>Intermédiaire</option>
+                    <option value="advanced">Avancé</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="max-depth">Profondeur maximale: <span id="max-depth-value">3</span> niveaux</label>
+                <input type="range" id="max-depth" name="max_depth" min="2" max="5" value="3" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label for="choices-per-level">Choix par niveau: <span id="choices-per-level-value">3</span> options</label>
+                <input type="range" id="choices-per-level" name="choices_per_level" min="2" max="5" value="3" class="form-control">
+            </div>
+            
+            <button type="submit" class="btn-primary">Générer le chatbot</button>
+        </form>
+        
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p class="text-center">Génération en cours, veuillez patienter...</p>
+        </div>
+        
+        <div id="result-container" class="hidden">
+            <h2>Chatbot généré</h2>
+            
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <div class="tab-button active" data-tab="preview">Prévisualisation</div>
+                    <div class="tab-button" data-tab="markdown">Markdown</div>
+                    <div class="tab-button" data-tab="improve">Améliorer</div>
+                </div>
+                
+                <div class="tab-content">
+                    <div class="tab-pane active" id="preview-tab">
+                        <div id="preview-container" class="preview-container"></div>
+                    </div>
+                    
+                    <div class="tab-pane" id="markdown-tab">
+                        <textarea id="markdown-content" class="form-control" style="height: 400px; font-family: monospace;"></textarea>
+                        <button id="copy-markdown" class="btn-primary" style="margin-top: 10px;">Copier</button>
+                        <button id="use-in-editor" class="btn-primary" style="margin-top: 10px; margin-left: 10px;">Utiliser dans l'éditeur</button>
+                    </div>
+                    
+                    <div class="tab-pane" id="improve-tab">
+                        <div class="form-group">
+                            <label for="section-to-improve">Section à améliorer (optionnel)</label>
+                            <input type="text" id="section-to-improve" class="form-control" placeholder="Nom de la section ou laisser vide pour tout le chatbot">
+                        </div>
+                        <button id="get-suggestions" class="btn-primary">Obtenir des suggestions</button>
+                        <div id="suggestions-container" class="hidden" style="margin-top: 20px;">
+                            <h3>Suggestions d'amélioration</h3>
+                            <div id="suggestions-content" style="margin-top: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('ai-generation-form');
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('result-container');
+            const errorContainer = document.getElementById('error-container');
+            const successContainer = document.getElementById('success-container');
+            const previewContainer = document.getElementById('preview-container');
+            const markdownContent = document.getElementById('markdown-content');
+            const copyMarkdownBtn = document.getElementById('copy-markdown');
+            const useInEditorBtn = document.getElementById('use-in-editor');
+            const getSuggestionsBtn = document.getElementById('get-suggestions');
+            const suggestionsContainer = document.getElementById('suggestions-container');
+            const suggestionsContent = document.getElementById('suggestions-content');
+            
+            // Gestion des curseurs
+            const maxDepthSlider = document.getElementById('max-depth');
+            const maxDepthValue = document.getElementById('max-depth-value');
+            const choicesPerLevelSlider = document.getElementById('choices-per-level');
+            const choicesPerLevelValue = document.getElementById('choices-per-level-value');
+            
+            // Initialiser les valeurs
+            maxDepthValue.textContent = maxDepthSlider.value;
+            choicesPerLevelValue.textContent = choicesPerLevelSlider.value;
+            
+            // Ajouter les écouteurs d'événements
+            maxDepthSlider.addEventListener('input', function() {
+                maxDepthValue.textContent = this.value;
+            });
+            
+            choicesPerLevelSlider.addEventListener('input', function() {
+                choicesPerLevelValue.textContent = this.value;
+            });
+            
+            // Gestion des onglets
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Désactiver tous les onglets
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabPanes.forEach(pane => pane.classList.remove('active'));
+                    
+                    // Activer l'onglet sélectionné
+                    this.classList.add('active');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // Soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Vérifier si un fichier a été sélectionné
+                const fileInput = document.getElementById('document');
+                if (!fileInput.files.length) {
+                    showError('Veuillez sélectionner un document à traiter.');
+                    return;
+                }
+                
+                // Masquer les messages précédents
+                errorContainer.classList.add('hidden');
+                successContainer.classList.add('hidden');
+                resultContainer.classList.add('hidden');
+                
+                // Afficher le chargement
+                loading.classList.remove('hidden');
+                
+                // Préparer les données du formulaire
+                const formData = new FormData(form);
+                
+                // Envoyer la requête
+                fetch('/api/generate-from-document', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Une erreur est survenue lors de la génération.');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Masquer le chargement
+                    loading.classList.add('hidden');
+                    
+                    // Afficher le résultat
+                    markdownContent.value = data.markdown;
+                    
+                    // Prévisualisation améliorée avec formatage Markdown
+                    try {
+                        // Extraire le contenu YAML et le contenu Markdown
+                        let yamlContent = '';
+                        let mdContent = data.markdown;
+                        
+                        if (data.markdown.startsWith('---')) {
+                            const parts = data.markdown.split('---');
+                            if (parts.length >= 3) {
+                                yamlContent = parts[1];
+                                mdContent = parts.slice(2).join('---');
+                            }
+                        }
+                        
+                        // Convertir les liens Markdown en HTML
+                        mdContent = mdContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="#$2" class="text-blue-600 hover:underline">$1</a>');
+                        
+                        // Convertir les titres
+                        mdContent = mdContent.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mb-4">$1</h1>');
+                        mdContent = mdContent.replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold mt-6 mb-3">$1</h2>');
+                        
+                        // Convertir les listes numérotées
+                        mdContent = mdContent.replace(/^(\d+)\. (.+)$/gm, '<div class="mb-2">$1. $2</div>');
+                        
+                        // Convertir les listes à puces (déclencheurs)
+                        mdContent = mdContent.replace(/^- (.+)$/gm, '<div class="text-gray-600 italic mb-1">• $1</div>');
+                        
+                        // Convertir les paragraphes
+                        mdContent = mdContent.replace(/^(?!<h|<div|$)(.+)$/gm, '<p class="mb-3">$1</p>');
+                        
+                        // Ajouter des sauts de ligne
+                        mdContent = mdContent.replace(/\n\n/g, '<br>');
+                        
+                        // Afficher le résultat formaté
+                        previewContainer.innerHTML = `
+                            <div class="p-4 border-b border-gray-300 mb-4 bg-gray-50">
+                                <div class="font-mono text-xs text-gray-600">YAML Frontmatter:</div>
+                                <pre class="bg-gray-100 p-2 rounded text-xs overflow-auto">${yamlContent.trim()}</pre>
+                            </div>
+                            <div class="markdown-preview">${mdContent}</div>
+                        `;
+                    } catch (e) {
+                        // En cas d'erreur, afficher le markdown brut
+                        previewContainer.innerHTML = `<pre>${data.markdown}</pre>`;
+                        console.error('Erreur lors du formatage de la prévisualisation:', e);
+                    }
+                    
+                    // Afficher le conteneur de résultat
+                    resultContainer.classList.remove('hidden');
+                    
+                    // Afficher un message de succès
+                    showSuccess('Chatbot généré avec succès !');
+                })
+                .catch(error => {
+                    // Masquer le chargement
+                    loading.classList.add('hidden');
+                    
+                    // Afficher l'erreur
+                    showError(error.message);
+                });
+            });
+            
+            // Copier le markdown
+            copyMarkdownBtn.addEventListener('click', function() {
+                markdownContent.select();
+                document.execCommand('copy');
+                alert('Markdown copié dans le presse-papier !');
+            });
+            
+            // Utiliser dans l'éditeur
+            useInEditorBtn.addEventListener('click', function() {
+                // Envoyer le markdown au serveur puis rediriger vers l'éditeur principal
+                const markdown = markdownContent.value;
+                
+                if (!markdown) {
+                    showError('Aucun contenu à envoyer à l\'éditeur.');
+                    return;
+                }
+                
+                // Afficher un message de chargement
+                showSuccess('Envoi du contenu à l\'éditeur principal...');
+                
+                // Envoyer le markdown au serveur via une requête POST à la nouvelle route
+                fetch('/save-to-editor', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `markdown=${encodeURIComponent(markdown)}`
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Une erreur est survenue lors de l\'envoi à l\'éditeur.');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
+                    // Rediriger vers l'éditeur principal
+                    window.location.href = data.redirect || '/';
+                })
+                .catch(error => {
+                    showError(error.message);
+                });
+            });
+            
+            // Obtenir des suggestions
+            getSuggestionsBtn.addEventListener('click', function() {
+                const section = document.getElementById('section-to-improve').value;
+                const markdown = markdownContent.value;
+                
+                if (!markdown) {
+                    showError('Aucun contenu à améliorer.');
+                    return;
+                }
+                
+                // Masquer les messages précédents
+                errorContainer.classList.add('hidden');
+                
+                // Afficher le chargement
+                loading.classList.remove('hidden');
+                suggestionsContainer.classList.add('hidden');
+                
+                // Préparer les données
+                const data = {
+                    markdown: markdown,
+                    section: section
+                };
+                
+                // Envoyer la requête
+                fetch('/api/suggest-improvements', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Une erreur est survenue lors de la génération des suggestions.');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Masquer le chargement
+                    loading.classList.add('hidden');
+                    
+                    // Afficher les suggestions
+                    suggestionsContent.innerHTML = data.suggestions.replace(/\n/g, '<br>');
+                    suggestionsContainer.classList.remove('hidden');
+                })
+                .catch(error => {
+                    // Masquer le chargement
+                    loading.classList.add('hidden');
+                    
+                    // Afficher l'erreur
+                    showError(error.message);
+                });
+            });
+            
+            // Fonctions utilitaires
+            function showError(message) {
+                errorContainer.textContent = message;
+                errorContainer.classList.remove('hidden');
+            }
+            
+            function showSuccess(message) {
+                successContainer.textContent = message;
+                successContainer.classList.remove('hidden');
+            }
+            
+            // Gestion du mode LLM (local ou en ligne)
+            const llmStatusText = document.getElementById('llm-status-text');
+            const llmStatus = document.getElementById('llm-status');
+            const llmModeSwitch = document.getElementById('llm-mode-switch');
+            const llmInstructionsLocal = document.getElementById('llm-instructions-local');
+            const llmInstructionsOnline = document.getElementById('llm-instructions-online');
+            
+            // Fonction pour vérifier le statut du LLM
+            function checkLLMStatus() {
+                fetch('/api/llm-status')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Mettre à jour le switch
+                        llmModeSwitch.checked = data.use_online;
+                        
+                        // Mettre à jour les instructions
+                        if (data.use_online) {
+                            llmInstructionsLocal.classList.add('hidden');
+                            llmInstructionsOnline.classList.remove('hidden');
+                            llmStatusText.textContent = "Connecté (Mistral API - Codestral)";
+                            llmStatus.classList.remove('alert-warning');
+                            llmStatus.classList.add('alert-success');
+                        } else {
+                            // Vérifier si le LLM local est disponible
+                            checkLocalLLM();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors de la vérification du statut LLM:', error);
+                        checkLocalLLM();
+                    });
+            }
+            
+            // Fonction pour vérifier si le LLM local est disponible
+            function checkLocalLLM() {
+                fetch('/api/suggest-improvements', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        markdown: "# Test\nCeci est un test.",
+                        section: ""
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // LLM local détecté
+                        llmStatusText.textContent = "Connecté (Jan.ai - mistral:7b)";
+                        llmStatus.classList.remove('alert-warning');
+                        llmStatus.classList.add('alert-success');
+                        llmInstructionsLocal.classList.add('hidden');
+                    } else {
+                        // LLM local non détecté
+                        llmStatusText.textContent = "Non connecté";
+                        llmStatus.classList.remove('alert-success');
+                        llmStatus.classList.add('alert-warning');
+                        llmInstructionsLocal.classList.remove('hidden');
+                    }
+                    llmInstructionsOnline.classList.add('hidden');
+                })
+                .catch(error => {
+                    // Erreur lors de la vérification
+                    llmStatusText.textContent = "Non connecté";
+                    llmStatus.classList.remove('alert-success');
+                    llmStatus.classList.add('alert-warning');
+                    llmInstructionsLocal.classList.remove('hidden');
+                    llmInstructionsOnline.classList.add('hidden');
+                });
+            }
+            
+            // Gérer le changement de mode LLM
+            llmModeSwitch.addEventListener('change', function() {
+                const useOnline = this.checked;
+                
+                // Afficher un message de chargement
+                llmStatusText.textContent = "Changement de mode...";
+                llmStatus.classList.remove('alert-success');
+                llmStatus.classList.add('alert-warning');
+                
+                // Envoyer la requête pour changer le mode
+                fetch('/api/toggle-llm-mode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        use_online: useOnline
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur lors du changement de mode LLM');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Mettre à jour l'interface
+                    if (useOnline) {
+                        llmStatusText.textContent = "Connecté (Mistral API - Codestral)";
+                        llmStatus.classList.remove('alert-warning');
+                        llmStatus.classList.add('alert-success');
+                        llmInstructionsLocal.classList.add('hidden');
+                        llmInstructionsOnline.classList.remove('hidden');
+                    } else {
+                        // Vérifier si le LLM local est disponible
+                        checkLocalLLM();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showError('Erreur lors du changement de mode LLM');
+                    this.checked = !useOnline;  // Remettre le switch dans son état précédent
+                });
+            });
+            
+            // Vérifier le statut du LLM au chargement de la page
+            checkLLMStatus();
+            
+            // Vérifier le statut du LLM toutes les 30 secondes
+            setInterval(checkLLMStatus, 30000);
+        });
+    </script>
+</body>
+</html>
