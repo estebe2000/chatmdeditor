@@ -1,0 +1,7 @@
+{
+  "max_upload_size_kb": 1024,
+  "allowed_extensions": [
+    ".md"
+  ],
+  "base_template": "---\ngestionGrosMots: true\ntitresR\u00e9ponses: [\"## \"]\n---\n\n# Mon Chatbot\nMessage initial du chatbot\n1. [Premier choix](R\u00e9ponse 1)\n2. [Deuxi\u00e8me choix](R\u00e9ponse 2)\n\n## R\u00e9ponse 1\n- d\u00e9clencheur 1\n- d\u00e9clencheur 2\nContenu de la r\u00e9ponse 1\n1. [Option 1](Option 1)\n2. [Option 2](Option 2)\n\n## R\u00e9ponse 2\n- d\u00e9clencheur\nContenu de la r\u00e9ponse 2\n"
+}

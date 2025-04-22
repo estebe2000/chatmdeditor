@@ -1,0 +1,113 @@
+/* Styles personnalisés pour l'éditeur ChatMD */
+.chatbot-response {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: #f8fafc;
+    border-left: 4px solid #3b82f6;
+}
+
+.chatbot-triggers {
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.chatbot-triggers li {
+    margin-bottom: 0.25rem;
+}
+
+.chatbot-options {
+    margin-top: 1rem;
+}
+
+.chatbot-options a {
+    display: inline-block;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.chatbot-options a:hover {
+    background-color: #2563eb;
+}
+
+/* Styles pour les admonitions */
+.admonition {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.375rem;
+}
+
+.admonition.info {
+    background-color: #e0f2fe;
+    border-left: 4px solid #0ea5e9;
+}
+
+.admonition.success {
+    background-color: #dcfce7;
+    border-left: 4px solid #22c55e;
+}
+
+.admonition.warning {
+    background-color: #fef3c7;
+    border-left: 4px solid #f59e0b;
+}
+
+.admonition.danger {
+    background-color: #fee2e2;
+    border-left: 4px solid #ef4444;
+}
+
+/* Améliorations pour l'éditeur */
+#markdown-editor {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    line-height: 1.6;
+}
+
+/* Style pour la prévisualisation */
+#preview {
+    line-height: 1.7;
+}
+
+#preview h1, #preview h2, #preview h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+#preview p {
+    margin-bottom: 1rem;
+}
+
+#preview ul, #preview ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+#preview code {
+    background-color: #f1f5f9;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.875rem;
+}
+
+#preview pre {
+    background-color: #f1f5f9;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+#preview pre code {
+    background-color: transparent;
+    padding: 0;
+}

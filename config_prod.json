@@ -1,0 +1,10 @@
+{
+  "max_upload_size_kb": 1024,
+  "allowed_extensions": [".md"],
+  "base_template": "---\ngestionGrosMots: true\ntitresRéponses: [\"## \"]\n---\n\n# Mon Chatbot\nMessage initial du chatbot\n1. [Premier choix](Réponse 1)\n2. [Deuxième choix](Réponse 2)\n\n## Réponse 1\n- déclencheur 1\n- déclencheur 2\nContenu de la réponse 1\n1. [Option 1](Option 1)\n2. [Option 2](Option 2)\n\n## Réponse 2\n- déclencheur\nContenu de la réponse 2\n",
+  "debug": false,
+  "host": "0.0.0.0",
+  "port": 8000,
+  "workers": 4,
+  "timeout": 120
+}
