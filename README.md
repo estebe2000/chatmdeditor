@@ -130,6 +130,23 @@ Contenu de la réponse 1
 Contenu de la réponse 2
 ```
 
+## 🌐 Publication et Utilisation du Chatbot
+
+Une fois votre chatbot créé et exporté au format Markdown, vous pouvez le publier et le rendre accessible aux utilisateurs en suivant ces étapes :
+
+1. **Déposez votre fichier Markdown** sur [CodiMD](https://codimd.apps.education.fr/)
+   - Créez un compte ou connectez-vous
+   - Créez un nouveau document et importez votre fichier Markdown
+   - Publiez le document pour obtenir une URL publique (par exemple: `https://codimd.apps.education.fr/s/9TeLcJlKz`)
+
+2. **Accédez à votre chatbot** via l'URL de ChatMD suivie de l'URL de votre document CodiMD :
+   - Format: `https://chatmd.forge.apps.education.fr/#URL_DE_VOTRE_DOCUMENT`
+   - Exemple: `https://chatmd.forge.apps.education.fr/#https://codimd.apps.education.fr/s/9TeLcJlKz`
+
+3. **Partagez cette URL** avec vos utilisateurs pour qu'ils puissent interagir avec votre chatbot
+
+Cette méthode vous permet de mettre à jour facilement votre chatbot en modifiant simplement le document sur CodiMD, sans avoir à redéployer quoi que ce soit.
+
 ## 🤝 Contribution
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou à soumettre une pull request.
